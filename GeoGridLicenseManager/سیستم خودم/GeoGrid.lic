@@ -1,0 +1,24 @@
+{
+  "payload": {
+    "customer": "نام مشتری",
+    "expires_at": "2027-01-01T23:59:59+00:00",
+    "features": [
+      "gis_import",
+      "dgs_export",
+      "diagram_preview",
+      "batch_conversion",
+      "type_library_editor"
+    ],
+    "issued_at": "2026-08-22T18:47:33.248959+00:00",
+    "license_format": 1,
+    "license_id": "0c2eab69-5de5-42f7-a44f-86bb1d1f287d",
+    "license_type": "PROFESSIONAL",
+    "machine_id": "GG-MACHINE-3CD3B95F-F6F3FA6B",
+    "max_machines": 1,
+    "notes": "",
+    "product": "GeoGrid",
+    "product_version": "4.x"
+  },
+  "signature": "0sraIINOdcB3Og9aU5dvUBrC3lZwaivSN81o8VveSkjum25/W+IUThUOv19S3jApJg87WjhI7CQF5rH7B5xlBw==",
+  "signing_key_id": "ggkey-2026-01"
+}
