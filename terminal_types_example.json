@@ -1,0 +1,20 @@
+{
+  "_comment": "SHP→DGS v2.1 - Terminal type mapping. Keys are connection kinds, values are DIgSILENT graphic symbols.",
+  "_available_symbols": [
+    "PointTerm",
+    "TermStrip",
+    "Busbar",
+    "Terminal",
+    "SimpleTerminal",
+    "BusbarDouble",
+    "PointTerm3"
+  ],
+  "line_junction": "PointTerm",
+  "device_node": "PointTerm",
+  "switch": "TermStrip",
+  "fuse": "PointTerm",
+  "transformer_hv": "TermStrip",
+  "transformer_lv": "Busbar",
+  "load": "PointTerm",
+  "source": "TermStrip"
+}

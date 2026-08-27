@@ -1,0 +1,47 @@
+# SHP -> DGS Converter (shp2dgs) - Production dependencies
+# Tested with Python 3.9 - 3.12 on Windows/Linux
+
+# Shapefile I/O
+pyshp>=2.3.1
+
+# Excel DGS output + equipment-type-library Excel import/export
+openpyxl>=3.1.2
+et_xmlfile>=1.1.0  # openpyxl dependency
+
+# Modern GUI - choose ONE (PySide6 preferred)
+# PySide6 is the official Qt for Python (LGPL). It includes the QtSvg
+# module needed for the Diagram Preview tab's "Export SVG" action.
+PySide6>=6.5.0
+
+# Alternative Qt binding (uncomment if you prefer PyQt5; SVG export needs
+# a PyQt5 build that includes QtSvg)
+# PyQt5>=5.15.9
+# PyQt5-sip>=12.11
+
+# Licensing subsystem (Ed25519 signature verification)
+cryptography>=42.0.0
+
+# Optional: GPS coordinate generation for PowerFactory's Geographic
+# Diagram (Project Settings -> Geographic (GPS), or --gps on the CLI).
+# Not required for a normal conversion.
+# pyproj>=3.5.0
+
+# Build tool (only needed for creating the standalone .exe/.app)
+# pyinstaller>=6.0
+
+# ---
+# Installation:
+#   pip install -r requirements.txt
+#
+# Editable/library install (exposes the `shp2dgs` package + console entry
+# point, see pyproject.toml):
+#   pip install -e .
+#
+# Build a standalone executable:
+#   pip install pyinstaller
+#   pyinstaller shp_to_dgs.spec
+#
+# Run:
+#   python shp_to_dgs.py                     # opens the GUI
+#   python -m shp2dgs                        # same, via the package
+#   python shp_to_dgs.py --shp ./shapefiles --out output.xlsx --no-gui

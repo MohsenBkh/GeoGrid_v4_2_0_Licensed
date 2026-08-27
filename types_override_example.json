@@ -1,0 +1,36 @@
+{
+  "_comment": "SHP→DGS v2.1 - Equipment type library override",
+  "_formats": [
+    "A) Per-type parameter patch: {\"TypLne\": {\"ACSR-FOX\": {\"rline\":0.8, \"xline\":0.41}}}",
+    "B) Full sheet replacement: {\"TypLne\": {\"header\": [...], \"rows\": [...]}}"
+  ],
+  "TypLne": {
+    "ACSR-FOX": {
+      "rline": 0.798,
+      "xline": 0.408,
+      "rline0": 2.39,
+      "xline0": 1.224
+    },
+    "ACSR-MINK": {
+      "rline": 0.46,
+      "xline": 0.391
+    }
+  },
+  "TypTr2": {
+    "100KVA20-O": {
+      "uktr": 4.0,
+      "pcutr": 2.15,
+      "pfe": 0.34
+    },
+    "200KVA20-O": {
+      "uktr": 4.0,
+      "pcutr": 3.6
+    }
+  },
+  "TypLod": {
+    "Normal": {
+      "kpu": 1.6,
+      "kqu": 1.8
+    }
+  }
+}

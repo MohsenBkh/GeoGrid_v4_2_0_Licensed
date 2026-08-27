@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shp2dgs"
+dynamic = ["version"]
+description = "GeoGrid \u2014 convert distribution-network GIS shapefiles into a DIgSILENT PowerFactory DGS deck, with a GUI, geographic diagram preview, and optional GPS coordinates for PowerFactory's Geographic Diagram."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary" }
+dependencies = [
+    "pyshp>=2.3.1",
+    "openpyxl>=3.1.2",
+]
+
+[project.optional-dependencies]
+gui = ["PySide6>=6.5.0"]
+gui-pyqt5 = ["PyQt5>=5.15.9"]
+gps = ["pyproj>=3.5.0"]
+
+[project.scripts]
+shp2dgs = "shp2dgs.cli:main"
+geogrid = "shp2dgs.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "shp2dgs.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["shp2dgs*"]
+
+[tool.setuptools.package-data]
+shp2dgs = []

@@ -1,0 +1,165 @@
+{
+  "_comment": "Configuration for the SHP -> DIgSILENT DGS converter. Edit mappings/factors as needed.",
+  "round_decimals": 3,
+  "nominal_mv_kv": 20.0,
+  "grid_frequency_hz": 50.0,
+  "load": {
+    "loading_factor": 0.7,
+    "power_factor_cos": 0.9,
+    "load_type_name": "Normal",
+    "mode_inp": "PC",
+    "phtech": "3PH PH-E"
+  },
+  "transformer": {
+    "capacity_field": "T_strn",
+    "type_pattern": "{cap}KVA20-O",
+    "fallback_type": "Unknown",
+    "lv_voltage_kv": 0.4,
+    "_comment_series": "Loss-class ('series') selection: AB' = low-loss, Normal = standard. Scanned fields are checked for the keyword lists below; low-loss keywords win if both appear. Per user instruction, low-loss (AB') is also the default when nothing is mentioned.",
+    "loss_class_scan_fields": ["T_tozieh", "T_typ", "T_noe_tera"],
+    "loss_class_low_loss_keywords": ["کم تلفات", "کم‌تلفات", "کمتلفات", "low loss", "low-loss", "ab'", "amorphous"],
+    "loss_class_high_loss_keywords": ["پرتلفات", "پر تلفات", "high loss", "high-loss", "normal loss"],
+    "loss_class_default": "low_loss",
+    "series_names": {"low_loss": "AB'", "normal": "Normal"},
+    "_comment_insulation": "Insulation ('O'=oil, 'D'=dry) selection from insulation_field, matched against the keyword lists below.",
+    "insulation_field": "T_noe_tera",
+    "insulation_oil_keywords": ["روغن", "oil"],
+    "insulation_dry_keywords": ["خشک", "خشك", "dry"],
+    "insulation_default": "O",
+    "_comment_patterns": "Ordered candidate loc_name patterns tried per insulation, first exact match wins. {series}/{cap} are substituted; falls back to type_pattern/capacity-based matching if none match.",
+    "name_patterns": {
+      "O": ["TRF-{series}-20/0.4 kV-{cap} kVA", "{cap}KVA20-O", "{cap}KVA20-OLS"],
+      "D": ["{cap}KVA20-D", "TRF-{series}-20/0.4 kV-{cap} kVA"]
+    }
+  },
+  "fuse": {
+    "type_name": "Default_Fuse_Type",
+    "lv_type_name": "LV_Default_Fuse",
+    "lv_urat_kv": 0.4,
+    "lv_irat_a": 100,
+    "lv_frq_hz": 50
+  },
+  "_comment_layers": "Shapefile layer-name defaults per the utility's official layer list (see 'attachments'). lv_fuse/lv_switch/lv_distribution_box have no corresponding entry in that list, so their prior codes were kept rather than guessed -- override per-project via the Layer Mapping settings if your data differs from any of these.",
+  "layers": {
+    "mv_overhead_line": "ELOML",
+    "mv_underground_line": "ELUML",
+    "mv_other_lines": "ELMLN",
+    "mv_abc_cable": "ELMSC",
+    "mv_jumper": "ELJUP",
+    "mv_transformer": "ELDTR",
+    "mv_breaker": "ELCBR",
+    "mv_disconnector": "ELDCS",
+    "mv_recloser": "ELREC",
+    "mv_sectionalizer": "ELSEC",
+    "mv_autobooster": "ELABS",
+    "mv_feeder_switch": null,
+    "mv_capacitor": "ELMVC",
+    "mv_fuse": "ELFCT",
+    "mv_source": "ELFWT",
+    "lv_overhead_line": "ELOLL",
+    "lv_underground_line": "ELULL",
+    "lv_other_lines": "ELLLN",
+    "lv_jumper": "ELLJP",
+    "lv_abc_cable": "ELLSC",
+    "lv_service_cable": "ELCSE",
+    "lv_fuse": "ELWLFU",
+    "lv_switch": ["ELWLSB", "ELWLSC"],
+    "lv_distribution_box": "ELWDBX",
+    "lv_dg_source": "ELDSG"
+  },
+  "graphics": {
+    "_comment": "v2.3 diagram sizes, in DIgSILENT diagram units. node_spacing/terminal_size/busbar_length/busbar_thickness/element_size are FIXED values (not scaled by the network's real-world extent) so symbols stay a sensible, predictable size regardless of feeder length. Only page_margin_ratio/page_margin_min scale with the data's real extent, to keep a sensible gap between the outermost elements and the page edge.",
+    "node_spacing": 10,
+    "terminal_size": 0.05,
+    "busbar_length": 0.6,
+    "busbar_thickness": 0.1,
+    "hv_busbar_length_multiplier": 2.0,
+    "element_size": 1,
+    "page_margin_ratio": 0.05,
+    "page_margin_min": 5.0
+  },
+  "id_field": "T_MapID",
+  "feeder_field": "Feeder",
+  "feeder_field_fallback": "T_FeederNa",
+  "feeder_field_fallback2": "T_feader",
+  "feeder_field_fallback3": "T_name_fdr",
+  "line_type": {
+    "material_field": "T_jns_hadi",
+    "section_field": "T_cod_sath",
+    "nettype_field": "T_typ_shab",
+    "keywords": {
+      "acsr": ["ACSR"],
+      "copper": ["\u0645\u0633"],
+      "aaac": ["AAAC"],
+      "aluminum": ["\u0622\u0644\u0648\u0645\u064a\u0646\u064a\u0648\u0645", "\u0622\u0644\u0648\u0645\u06cc\u0646\u06cc\u0648\u0645"],
+      "cable": ["XLPE"],
+      "covered": ["\u0631\u0648\u0643\u0634", "\u0631\u0648\u06a9\u0634"]
+    },
+    "acsr_bare_by_section": {
+      "35": "ACSR-FOX", "42": "ACSR-FOX", "50": "50-CU-N",
+      "70": "ACSR-MINK", "95": "ACSR-MINK", "126": "ACSR-HYENA",
+      "185": "ACSR-WOLF", "225": "ACSR-LYNX", "0": "ACSR-MINK"
+    },
+    "covered_by_section": {
+      "35": "35-Covered", "70": "70-Covered", "126": "126-Covered", "226": "226-Covered"
+    },
+    "covered_default": "35-Covered",
+    "copper_by_section": {
+      "50": "50-CU-N", "42": "ACSR-FOX", "70": "70-Al_St"
+    },
+    "cable_default": "95-AL-XLPE",
+    "mln_default": "95-CU-XLPE",
+    "uml_default": "95-AL-XLPE",
+    "jup_default": "ACSR-MINK",
+    "global_fallback": "ACSR-MINK",
+    "abc_default": "ABC33KV120",
+    "_comment_underground": "NA2XSY/N2XSY XLPE underground-cable naming (VDE convention: NA = aluminum conductor, N = copper conductor, 2X = XLPE insulation, S = copper-wire screen, Y = PVC sheath). Invalid/unrecognised section or material falls back to uml_default and is recorded in the discrepancy report and prescan.",
+    "underground_material_keywords": {
+      "aluminum": ["\u0622\u0644\u0648\u0645\u064a\u0646\u064a\u0648\u0645", "\u0622\u0644\u0648\u0645\u06cc\u0646\u06cc\u0648\u0645", "aluminum", "al"],
+      "copper": ["\u0645\u0633", "copper", "cu"]
+    },
+    "underground_prefix_by_material": {"aluminum": "NA", "copper": "N"},
+    "underground_material_default": "aluminum",
+    "underground_screen_section": "16",
+    "underground_voltage_class": "12/20kV",
+    "underground_name_pattern": "{prefix}2XSY 1x{cap}/{screen} ({voltage_class})",
+    "underground_invalid_sections": ["0", "9999"]
+  },
+  "capacitor": {
+    "_comment": "No reactive-power rating field was identified in the source shapefile schema for capacitor banks, so a configurable default is used for every capacitor point -- review per-unit values in the Type Library Editor or override individually if your data has a rating field.",
+    "default_qcapn_mvar": 0.15,
+    "shtype": 0,
+    "ncapx": 1
+  },
+  "lv_line_type": {
+    "_comment": "LV (0.4kV) line/cable types are NOT present in the original MV-only dgs_template.json, so GeoGrid synthesizes them at conversion time from these rules, one TypLne row per distinct (material, section, installation) combination actually found in the input data. rline is computed from standard conductor resistivity (physics-based, reliable). xline/Ithr use single typical per-category values (textbook approximations) since exact manufacturer catalogue data was not available -- review/replace the generated LV types in the Type Library Editor (or via types_override) before using results for real engineering decisions.",
+    "material_field": "T_jns_hadi",
+    "overhead_install_field": "T_typ_shab",
+    "underground_arrangement_field": "T_noe_arys",
+    "section_field": "T_cod_sath",
+    "nominal_voltage_kv": 0.4,
+    "default_section_mm2": 16,
+    "keywords": {
+      "copper": ["\u0645\u0633"],
+      "aluminum": ["\u0622\u0644\u0648\u0645\u064a\u0646\u064a\u0648\u0645", "\u0622\u0644\u0648\u0645\u06cc\u0646\u06cc\u0648\u0645"],
+      "bare": ["\u0644\u062e\u062a"],
+      "covered": ["\u0631\u0648\u0643\u0634", "\u0631\u0648\u06a9\u0634"],
+      "abc": ["\u062e\u0648\u062f\u0646\u06af\u0647\u062f\u0627\u0631"],
+      "busbar": ["\u0634\u064a\u0646\u0647", "\u0634\u06cc\u0646\u0647"]
+    },
+    "resistivity_ohm_mm2_per_km": {
+      "copper": 17.5,
+      "aluminum": 28.3,
+      "default": 22.0
+    },
+    "reactance_ohm_per_km": {
+      "overhead": 0.35,
+      "underground": 0.08
+    },
+    "ampacity_a_per_mm2": {
+      "overhead": 4.0,
+      "underground": 5.0
+    },
+    "default_type_name": "LV-Default"
+  }
+}
