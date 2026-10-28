@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>پارامترهای کانورت به تفکیک تجهیز — GeoGrid v4.2.0</title>
+<style>
+  :root{
+    --ink:#1b2430; --muted:#5a6675; --line:#d7dee6; --bg:#f6f8fa;
+    --mv:#1f5f8b; --lv:#7a4fa3; --warn:#a8442a; --ok:#276749;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:28px 34px 60px; background:#fff; color:var(--ink);
+    font-family:"Vazirmatn","IRANSans","Segoe UI",Tahoma,Arial,sans-serif;
+    line-height:1.85; font-size:14.5px;
+  }
+  h1{font-size:26px; margin:0 0 6px; letter-spacing:-.2px}
+  h2{font-size:20px; margin:38px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--line)}
+  h3{font-size:16px; margin:26px 0 8px; color:var(--mv)}
+  p{margin:8px 0}
+  .sub{color:var(--muted); font-size:13px; margin-bottom:18px}
+  .lead{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 18px}
+  table{width:100%; border-collapse:collapse; margin:10px 0 22px; font-size:13.2px; background:#fff}
+  caption{caption-side:top; text-align:right; font-weight:700; padding:6px 0; color:var(--muted); font-size:12.5px}
+  th,td{border:1px solid var(--line); padding:7px 9px; vertical-align:top}
+  th{background:#eef3f8; font-weight:700; white-space:nowrap}
+  tbody tr:nth-child(even) td{background:#fbfcfd}
+  code{background:#eef1f4; border-radius:4px; padding:1px 5px; font-family:Consolas,"Courier New",monospace; font-size:12.2px; direction:ltr; display:inline-block}
+  .en{direction:ltr; unicode-bidi:embed; font-family:Consolas,"Courier New",monospace; font-size:12.2px}
+  .tag{display:inline-block; font-size:11.5px; padding:1px 8px; border-radius:999px; border:1px solid var(--line); background:#fff; color:var(--muted); margin-inline-start:6px}
+  .mvtag{color:var(--mv); border-color:#bcd6e8; background:#f2f8fd}
+  .lvtag{color:var(--lv); border-color:#dccdec; background:#faf6fd}
+  .note{border-right:4px solid var(--mv); background:#f4f9fd; padding:10px 14px; border-radius:0 8px 8px 0; margin:12px 0}
+  .warnbox{border-right:4px solid var(--warn); background:#fdf5f2; padding:10px 14px; border-radius:0 8px 8px 0; margin:12px 0}
+  ul,ol{margin:8px 0 8px 0; padding-inline-start:22px}
+  li{margin:4px 0}
+  .small{font-size:12.5px; color:var(--muted)}
+  .nowrap{white-space:nowrap}
+  footer{margin-top:44px; border-top:1px solid var(--line); padding-top:12px; color:var(--muted); font-size:12.5px}
+</style>
+</head>
+<body>
+
+<h1>پارامترهای کانورت، به تفکیک تجهیز</h1>
+<div class="sub">
+  فایل بررسی‌شده: <span class="en">GeoGrid_v4_2_0_Licensed-10.rar</span> — موتور کانورت:
+  <span class="en">shp2dgs/core/converter.py</span> (نسخه ۴.۲.۱) همراه با
+  <span class="en">config.json</span>، <span class="en">dgs_template.json</span>،
+  <span class="en">types_override.json</span> و <span class="en">equipment_catalog.py</span>
+</div>
+
+<div class="lead">
+  <b>خلاصه:</b> هر تجهیز در GIS از طریق یک «لایه» شناسایی می‌شود و به یک شیء DIgSILENT
+  (PowerFactory) نگاشت می‌شود. پارامترهای ورودی هر تجهیز تقریباً همیشه از این چند دسته‌اند:
+  <b>شناسه</b> (<code>T_MapID</code>)، <b>فیدر</b> (<code>Feeder</code>/<code>T_FeederNa</code>)،
+  <b>جنس</b> (<code>T_jns_hadi</code>)، <b>سطح مقطع</b> (<code>T_cod_sath</code>)،
+  <b>نوع شبکه/نصب</b> (<code>T_typ_shab</code>، <code>T_noe_arys</code>)،
+  <b>ظرفیت ترانس</b> (<code>T_strn</code>)، <b>وضعیت مدار</b> (<code>T__outserv</code>) و
+  <b>طول</b> (<code>Shape_STLe</code>/<code>T_FeatureL</code>).
+</div>
+
+<!-- ======================= 1. GLOBAL ======================= -->
+<h2>۱) پارامترهای سراسری (مشترک همه تجهیزات)</h2>
+<table>
+  <caption>این پارامترها یک بار برای کل شبکه اعمال می‌شوند</caption>
+  <thead>
+    <tr><th>پارامتر</th><th>کلید در config.json</th><th>مقدار پیش‌فرض</th><th>محل مصرف در DGS</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>ولتاژ نامی MV</td><td><code>nominal_mv_kv</code></td><td>20.0 kV</td><td><code>ElmTerm.uknom</code> ترمینال‌های MV و <code>ElmShnt.ushnm</code></td></tr>
+    <tr><td>ولتاژ نامی LV</td><td><code>transformer.lv_voltage_kv</code></td><td>0.4 kV</td><td><code>ElmTerm.uknom</code> ترمینال‌های LV، <code>uline</code> تیپ‌های LV</td></tr>
+    <tr><td>فرکانس شبکه</td><td><code>grid_frequency_hz</code></td><td>50 Hz</td><td><code>ElmNet.frnom</code></td></tr>
+    <tr><td>دقت اسنپ مختصات</td><td><code>round_decimals</code></td><td>3 رقم اعشار</td><td>یکسان‌سازی گره‌های هم‌مکان (ساخت <code>ElmTerm</code>)</td></tr>
+    <tr><td>فیلد شناسه</td><td><code>id_field</code></td><td><code>T_MapID</code></td><td><code>loc_name</code> همه المان‌ها</td></tr>
+    <tr><td>فیلد فیدر (زنجیره‌ای)</td><td><code>feeder_field</code> → <code>feeder_field_fallback</code> → <code>_fallback2</code> → <code>_fallback3</code></td><td><code>Feeder</code> → <code>T_FeederNa</code> → <code>T_feader</code> → <code>T_name_fdr</code></td><td><code>chr_name</code> همه المان‌ها و <code>loc_name</code> در <code>ElmFeeder</code>/<code>ElmXnet</code></td></tr>
+    <tr><td>ضریب بار</td><td><code>load.loading_factor</code></td><td>0.7</td><td><code>Elmlod.plini</code></td></tr>
+    <tr><td>ضریب توان</td><td><code>load.power_factor_cos</code></td><td>0.9</td><td><code>Elmlod.coslini</code></td></tr>
+    <tr><td>نوع بار / حالت ورودی / فاز</td><td><code>load.load_type_name</code> / <code>mode_inp</code> / <code>phtech</code></td><td><code>Normal</code> / <code>PC</code> / <code>3PH PH-E</code></td><td><code>Elmlod.typ_id</code> / <code>mode_inp</code> / <code>phtech</code></td></tr>
+    <tr><td>نام شبکه / نام پروژه</td><td><code>project_meta.grid_name</code> / <code>deck_name</code></td><td><code>Grid</code> / <code>Network_Deck</code></td><td><code>ElmNet.loc_name</code> / <code>IntGrfnet.loc_name</code></td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>سه منبع تعیین نوع (Type Library):</b>
+  <ul>
+    <li><code>dgs_template.json</code> — کتابخانه پایه: ۴۲ ردیف <code>TypLne</code>، ۶۰ ردیف <code>TypTr2</code>، ۱ ردیف <code>TypLod</code> (<code>Normal</code>)، ۱ ردیف <code>TypFuse</code> (<code>Default_Fuse_Type</code>).</li>
+    <li><code>types_override.json</code> — اصلاح/جایگزینی پارامترهای نوع‌ها (دو حالت: وصله‌ی پارامتری مثل <code>{"TypTr2":{"100KVA20-O":{"uktr":4.0}}}</code> یا جایگزینی کامل شیت).</li>
+    <li>«Pre-check Types» در GUI — تخصیص دستی نوع برای ترکیب‌های نامشخص (مقطع/جنس/ظرفیت) پیش از اجرای کانورت.</li>
+  </ul>
+</div>
+
+<!-- ======================= 2. MV ======================= -->
+<h2>۲) تجهیزات MV (توزیع ۲۰ کیلوولت)</h2>
+<table>
+  <caption>نگاشت تجهیز → لایه → شیء DGS → پارامترهای مبدأ</caption>
+  <thead>
+    <tr>
+      <th>تجهیز</th>
+      <th>لایه پیش‌فرض</th>
+      <th>شیء DGS</th>
+      <th>پارامترهای خوانده‌شده از GIS</th>
+      <th>قاعده تبدیل / مقدار ثابت</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>خط هوایی MV</b><span class="tag mvtag">mv_overhead_line</span></td>
+      <td><code>ELOML</code></td>
+      <td><code>ElmLne</code></td>
+      <td>
+        شناسه: <code>T_MapID</code><br>
+        جنس: <code>T_jns_hadi</code><br>
+        مقطع: <code>T_cod_sath</code><br>
+        نوع شبکه/روکش: <code>T_typ_shab</code><br>
+        طول: <code>Shape_STLe</code> (یا <code>T_FeatureL</code>)<br>
+        فیدر: زنجیره فیدر
+      </td>
+      <td>
+        <code>typ_id</code> از جدول جنس+مقطع (بخش ۳)؛
+        اولویت «روکش‌دار» → «مس» → «کابل XLPE» → «ACSR لخت».
+        <code>dline = طول/1000</code> کیلومتر؛
+        خط به تعداد رأس‌های GIS به سگمنت شکسته می‌شود (طول هر سگمنت به‌نسبت طول مستقیم، نام با پسوند <code>_1.._n</code>).
+      </td>
+    </tr>
+    <tr>
+      <td><b>کابل زمینی MV</b><span class="tag mvtag">mv_underground_line</span></td>
+      <td><code>ELUML</code></td>
+      <td><code>ElmLne</code></td>
+      <td>
+        جنس: <code>T_jns_hadi</code> (آلومینیوم/مس)<br>
+        مقطع: <code>T_cod_sath</code> (مقاطع <code>0</code> و <code>9999</code> نامعتبر)<br>
+        طول: <code>Shape_STLe</code>
+      </td>
+      <td>
+        نام‌گذاری VDE: <code>{NA|N}2XSY 1x{مقطع}/16 (12/20kV)</code><br>
+        <code>NA</code> = هادی آلومینیوم، <code>N</code> = مس، صفحه ۱۶ mm²، کلاس 12/20kV.
+        اگر نوع نام‌گذاری‌شده در کتابخانه نباشد → <code>uml_default = 95-AL-XLPE</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><b>سایر خطوط MV</b><span class="tag mvtag">mv_other_lines</span></td>
+      <td><code>ELMLN</code></td>
+      <td><code>ElmLne</code></td>
+      <td>شناسه، فیدر، طول</td>
+      <td>بدون سیگنال جنس/مقطع: یک نوع ثابت برای همه = <code>mln_default</code> = <code>95-CU-XLPE</code> (یا انتخاب دستی در Pre-check).</td>
+    </tr>
+    <tr>
+      <td><b>کابل خودنگهدار MV (ABC)</b><span class="tag mvtag">mv_abc_cable</span></td>
+      <td>—</td>
+      <td><code>ElmLne</code></td>
+      <td>شناسه، فیدر، طول</td>
+      <td>نوع ثابت <code>abc_default</code> = <code>ABC33KV120</code> (مستقل از مقطع).</td>
+    </tr>
+    <tr>
+      <td><b>جامپر MV</b><span class="tag mvtag">mv_jumper</span></td>
+      <td><code>ELJUP</code></td>
+      <td><code>ElmLne</code></td>
+      <td>جنس: <code>T_jns_hadi</code><br>مقطع: <code>T_cod_sath</code></td>
+      <td>
+        اگر جنس شامل <code>ACSR</code> → جدول مقطع (بخش ۳)؛
+        اگر آلومینیوم/AAAC → <code>ACSR-FOX</code>؛
+        در غیر این صورت <code>jup_default</code> = <code>ACSR-MINK</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><b>ترانسفورماتور توزیع</b><span class="tag mvtag">mv_transformer</span></td>
+      <td><code>ELDTR</code></td>
+      <td><code>ElmTr2</code> + <code>Elmlod</code></td>
+      <td>
+        ظرفیت: <code>T_strn</code> (kVA)<br>
+        اسکن کلاس تلفات: <code>T_tozieh</code>، <code>T_typ</code>، <code>T_noe_tera</code><br>
+        عایق: <code>T_noe_tera</code>
+      </td>
+      <td>
+        کلاس تلفات: کم‌تلفات / <code>low loss</code> / <code>amorphous</code> → <code>AB'</code>؛ پرتلفات → <code>Normal</code>؛ پیش‌فرض = کم‌تلفات.<br>
+        عایق: روغن/<code>oil</code> → <code>O</code>، خشک/<code>dry</code> → <code>D</code>، پیش‌فرض <code>O</code>.<br>
+        نام نوع طبق بخش ۴؛ در صورت عدم تطابق → <code>Unknown</code>.<br>
+        بار: <code>plini = kVA × 0.7 / 1000</code> مگاوات، <code>cosφ = 0.9</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><b>کلیدها:</b> بریکر / سکسیونر / ریکلوزر / سکشنالایزر / اتوبوستر / کلید فیدر
+        <span class="tag mvtag">mv_breaker · mv_disconnector · mv_recloser · mv_sectionalizer · mv_autobooster · mv_feeder_switch</span></td>
+      <td><code>ELCBR</code> / <code>ELDCS</code> / <code>ELREC</code> / <code>ELSEC</code> / <code>ELABS</code></td>
+      <td><code>ElmCoup</code></td>
+      <td>
+        شناسه: <code>T_MapID</code><br>
+        وضعیت: <code>T__outserv</code> (1/true/«خارج از مدار» → قطع)
+      </td>
+      <td>
+        <code>typ_id</code> خالی (بدون کتابخانه نوع کلید)، <code>aUsage = cbk</code>،
+        <code>on_off</code> از <code>T__outserv</code>. اتوبوستر فقط به‌صورت کلید سری مدل می‌شود (بدون رفتار تنظیم ولتاژ).
+      </td>
+    </tr>
+    <tr>
+      <td><b>فیوز / کات‌اوت MV</b><span class="tag mvtag">mv_fuse</span></td>
+      <td><code>ELFCT</code></td>
+      <td><code>RelFuse</code></td>
+      <td>شناسه، فیدر</td>
+      <td>
+        نوع = <code>fuse.type_name</code> = <code>Default_Fuse_Type</code>،
+        <code>aUsage = fus</code>، <code>on_off = 1</code> ثابت
+        (نکته: <code>T__outserv</code> برای فیوز خوانده <b>نمی‌شود</b>).
+      </td>
+    </tr>
+    <tr>
+      <td><b>بانک خازنی MV</b><span class="tag mvtag">mv_capacitor</span></td>
+      <td><code>ELMVC</code></td>
+      <td><code>ElmShnt</code></td>
+      <td>شناسه، فیدر (هیچ فیلد الکتریکی‌ای خوانده نمی‌شود)</td>
+      <td>
+        <code>qcapn = 0.15</code> Mvar، <code>ushnm = 20</code> kV،
+        <code>shtype = 0</code>، <code>ncapx = 1</code>، <code>ctech = 0</code>، <code>tandc = 0</code>
+        — همه ثابت از <code>config.capacitor</code>.
+      </td>
+    </tr>
+    <tr>
+      <td><b>منبع فیدر (پست/فیدر-هد)</b><span class="tag mvtag">mv_source</span></td>
+      <td><code>ELFWT</code></td>
+      <td><code>ElmXnet</code> + <code>ElmFeeder</code></td>
+      <td>فیدر (زنجیره ۴ فیلدی) — فقط برای نام</td>
+      <td>
+        <code>ElmXnet</code>: <code>bustp = SL</code>، <code>usetp = 1</code>،
+        <code>r0tx0 = 0.1</code>، <code>r0tx0min = 0.1</code>، <code>rntxn = 0.5</code>،
+        <code>rntxnmin = 0.4</code>، <code>snss = 600</code>، <code>snssmin = 500</code>.
+        <code>ElmFeeder</code>: <code>obj_id</code> = کیوبیکل ترمینال، رنگ از پالت ثابت (۲ تا ۱۵).
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ======================= 3. LINE TYPE TABLES ======================= -->
+<h2>۳) جداول انتخاب نوع خط MV (<code>TypLne</code>)</h2>
+
+<h3>۳-۱) هادی لخت ACSR بر اساس <span class="en">T_cod_sath</span></h3>
+<table>
+  <thead><tr><th>مقطع (mm²)</th><th>35</th><th>42</th><th>50</th><th>70</th><th>95</th><th>126</th><th>185</th><th>225</th><th>0 / نامشخص</th></tr></thead>
+  <tbody>
+    <tr><td>نوع</td>
+      <td><code>ACSR-FOX</code></td><td><code>ACSR-FOX</code></td><td><code>50-CU-N</code></td>
+      <td><code>ACSR-MINK</code></td><td><code>ACSR-MINK</code></td><td><code>ACSR-HYENA</code></td>
+      <td><code>ACSR-WOLF</code></td><td><code>ACSR-LYNX</code></td><td><code>ACSR-MINK</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>۳-۲) هادی روکش‌دار (<span class="en">T_typ_shab</span> یا <span class="en">T_jns_hadi</span> شامل «روکش»)</h3>
+<table>
+  <thead><tr><th>مقطع</th><th>35</th><th>70</th><th>126</th><th>226</th><th>سایر → پیش‌فرض</th></tr></thead>
+  <tbody>
+    <tr><td>نوع</td><td><code>35-Covered</code></td><td><code>70-Covered</code></td><td><code>126-Covered</code></td><td><code>226-Covered</code></td><td><code>35-Covered</code></td></tr>
+  </tbody>
+</table>
+
+<h3>۳-۳) مس (<span class="en">T_jns_hadi</span> شامل «مس»)</h3>
+<table>
+  <thead><tr><th>مقطع</th><th>42</th><th>50</th><th>70</th><th>سایر</th></tr></thead>
+  <tbody>
+    <tr><td>نوع</td><td><code>ACSR-FOX</code></td><td><code>50-CU-N</code></td><td><code>70-Al_St</code></td><td><code>ACSR-MINK</code> (fallback)</td></tr>
+  </tbody>
+</table>
+
+<h3>۳-۴) مقادیر پیش‌فرض هر دسته</h3>
+<table>
+  <thead><tr><th>دسته</th><th>کلید</th><th>مقدار</th></tr></thead>
+  <tbody>
+    <tr><td>کابل XLPE (هوایی/سایر)</td><td><code>cable_default</code></td><td><code>95-AL-XLPE</code></td></tr>
+    <tr><td>سایر خطوط MV</td><td><code>mln_default</code></td><td><code>95-CU-XLPE</code></td></tr>
+    <tr><td>کابل زمینی</td><td><code>uml_default</code></td><td><code>95-AL-XLPE</code></td></tr>
+    <tr><td>جامپر</td><td><code>jup_default</code></td><td><code>ACSR-MINK</code></td></tr>
+    <tr><td>ABC</td><td><code>abc_default</code></td><td><code>ABC33KV120</code></td></tr>
+    <tr><td>پشتیبان نهایی همه خطوط</td><td><code>global_fallback</code></td><td><code>ACSR-MINK</code></td></tr>
+  </tbody>
+</table>
+
+<div class="warnbox">
+  <b>یافته مهم درباره کابل زمینی:</b> کد، نام کابل را طبق الگوی VDE می‌سازد
+  (<code>NA2XSY 1x95/16 (12/20kV)</code>)، اما شیت <code>TypLne</code> در
+  <code>dgs_template.json</code> چنین نامی ندارد (فقط <code>35..300-AL-XLPE</code> و <code>*-CU-XLPE</code>).
+  نتیجه: با کتابخانه پیش‌فرض، <b>همه</b> کابل‌های زمینی MV به <code>95-AL-XLPE</code> تبدیل می‌شوند.
+  برای تبدیل درست، یا نوع‌های <code>NA2XSY / N2XSY</code> را به کتابخانه اضافه کنید، یا از
+  «Pre-check Types» نوع هر ترکیب (مقطع، جنس) را دستی تخصیص دهید.
+</div>
+
+<!-- ======================= 4. TRANSFORMER ======================= -->
+<h2>۴) قاعده انتخاب نوع ترانس (<code>TypTr2</code>)</h2>
+<p>ترتیب جست‌وجو: انتخاب دستی → الگوهای <code>name_patterns</code> بر اساس عایق و کلاس تلفات → الگوی قدیمی <code>type_pattern</code> → تطبیق یکتای ظرفیت → نوع پشتیبان <code>Unknown</code>.</p>
+<table>
+  <thead><tr><th>عایق</th><th>الگوها (به ترتیب اولویت)</th><th>مثال برای ۳۱۵ kVA</th></tr></thead>
+  <tbody>
+    <tr><td>روغنی <code>O</code> (پیش‌فرض)</td>
+      <td><code>TRF-{series}-20/0.4 kV-{cap} kVA</code> → <code>{cap}KVA20-O</code> → <code>{cap}KVA20-OLS</code></td>
+      <td><span class="en">TRF-AB'-20/0.4 kV-315 kVA</span> سپس <span class="en">315KVA20-O</span></td></tr>
+    <tr><td>خشک <code>D</code></td>
+      <td><code>{cap}KVA20-D</code> → <code>TRF-{series}-20/0.4 kV-{cap} kVA</code></td>
+      <td><span class="en">315KVA20-D</span></td></tr>
+    <tr><td>هر دو (پشتیبان)</td>
+      <td>الگوی قدیمی <code>{cap}KVA20-O</code>، سپس تطبیق بر اساس عدد kVA در نام نوع با امتیازدهی پسوند <code>-O/-OLS/-D</code></td>
+      <td>—</td></tr>
+  </tbody>
+</table>
+<p class="small">
+  <code>{series}</code> = <code>AB'</code> (کم‌تلفات) یا <code>Normal</code>. کلیدواژه‌های کم‌تلفات:
+  «کم تلفات»، «کم‌تلفات»، <code>low loss</code>، <code>amorphous</code>، <code>ab'</code>؛
+  پرتلفات: «پرتلفات»، <code>high loss</code>، <code>normal loss</code>.
+  اگر هیچ کلیدواژه‌ای پیدا نشود، <b>کم‌تلفات فرض می‌شود</b> و در گزارش مغایرت ثبت می‌گردد.
+</p>
+
+<!-- ======================= 5. LV ======================= -->
+<h2>۵) تجهیزات LV (شبکه ۰٫۴ کیلوولت)</h2>
+<table>
+  <caption>نوع خط و فیوز LV در زمان کانورت سنتز می‌شود (در قالب اولیه وجود ندارد)</caption>
+  <thead>
+    <tr><th>تجهیز</th><th>لایه پیش‌فرض</th><th>شیء DGS</th><th>پارامترهای مبدأ</th><th>قاعده تبدیل / مقدار ثابت</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>خطوط هوایی / زمینی / سایر / جامپر / ABC / کابل انشعاب LV</b>
+        <span class="tag lvtag">lv_overhead_line · lv_underground_line · lv_other_lines · lv_jumper · lv_abc_cable · lv_service_cable</span></td>
+      <td><code>ELOLL</code> / <code>ELULL</code> / <code>ELLLN</code> / <code>ELLJP</code> / — / <code>ELCSE</code></td>
+      <td><code>ElmLne</code></td>
+      <td>
+        جنس: <code>T_jns_hadi</code> (مس/آلومینیوم)<br>
+        مقطع: <code>T_cod_sath</code> (پیش‌فرض ۱۶ mm²)<br>
+        نصب (هوایی): <code>T_typ_shab</code><br>
+        نصب (زمینی): <code>T_noe_arys</code><br>
+        طول: <code>Shape_STLe</code>
+      </td>
+      <td>
+        نام نوع = <code>LV-{نصب}-{جنس}-{مقطع}</code>، مثل <code>LV-BARE-ALUMINUM-35</code>.<br>
+        دسته نصب: خودنگهدار→<code>ABC</code>، روکش‌دار→<code>COVERED</code>، لخت→<code>BARE</code>،
+        شینه در <code>T_noe_arys</code>→<code>BUSBAR</code>، زیرزمینی→<code>UNDERGROUND</code>، غیر آن→<code>OVERHEAD</code>.<br>
+        خط به سگمنت شکسته می‌شود و به شبکه LV همان ترانس وصل می‌گردد.
+      </td>
+    </tr>
+    <tr>
+      <td><b>فیوز LV</b><span class="tag lvtag">lv_fuse</span></td>
+      <td><code>ELWLFU</code></td>
+      <td><code>RelFuse</code></td>
+      <td>شناسه، فیدر</td>
+      <td>نوع سنتزشده <code>LV_Default_Fuse</code>: <code>urat = 0.4</code> kV، <code>irat = 100</code> A، <code>frq = 50</code> Hz، <code>on_off = 1</code>.</td>
+    </tr>
+    <tr>
+      <td><b>کلید / سکشنالایزر LV</b><span class="tag lvtag">lv_switch</span></td>
+      <td><code>ELWLSB</code> + <code>ELWLSC</code></td>
+      <td><code>ElmCoup</code></td>
+      <td>شناسه، <code>T__outserv</code></td>
+      <td><code>on_off</code> از <code>T__outserv</code>، <code>aUsage = cbk</code>، بدون نوع.</td>
+    </tr>
+    <tr>
+      <td><b>جعبه توزیع LV</b><span class="tag lvtag">lv_distribution_box</span></td>
+      <td><code>ELWDBX</code></td>
+      <td>ترمینال اجباری <code>ElmTerm</code> (0.4 kV)</td>
+      <td>مختصات (بدون فیلد الکتریکی)</td>
+      <td>فقط به‌عنوان گره LV تضمین می‌شود تا خطوط LV به آن وصل شوند.</td>
+    </tr>
+    <tr>
+      <td><b>منبع تولید پراکنده (DG)</b><span class="tag lvtag">lv_dg_source</span></td>
+      <td>—</td>
+      <td><code>ElmXnet</code> + <code>ElmFeeder</code></td>
+      <td>فیدر (یا نام پیش‌فرض <code>DG</code>)</td>
+      <td>منبع معادل با همان پارامترهای ثابت منبع MV (SL، usetp=1، snss=600/500، …). مدل مولد تفصیلی ساخته نمی‌شود.</td>
+    </tr>
+    <tr>
+      <td><b>بار LV</b></td>
+      <td>— (از ظرفیت ترانس)</td>
+      <td><code>Elmlod</code></td>
+      <td>ظرفیت ترانس: <code>T_strn</code></td>
+      <td>
+        اگر شبکه LV متصل باشد: ظرفیت ترانس <b>به‌طور مساوی بین گره‌های برگ</b> شبکه LV پخش می‌شود
+        (<code>load_{code}_{i}</code>)؛ در غیر این صورت یک بار روی باس‌بار LV (<code>load_{code}</code>).
+        <code>plini = kVA × 0.7 / 1000</code>، <code>cosφ = 0.9</code>.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>۵-۱) فرمول‌های نوع خط سنتزشده LV (<code>TypLne</code>)</h3>
+<table>
+  <thead><tr><th>ستون DGS</th><th>فرمول / مقدار</th><th>کلید config</th></tr></thead>
+  <tbody>
+    <tr><td><code>rline</code> (Ω/km)</td><td>ρ / مقطع — مس ۱۷٫۵، آلومینیوم ۲۸٫۳، پیش‌فرض ۲۲</td><td><code>resistivity_ohm_mm2_per_km</code></td></tr>
+    <tr><td><code>xline</code> (Ω/km)</td><td>هوایی ۰٫۳۵ — زیرزمینی ۰٫۰۸ (مقدار تیپیک)</td><td><code>reactance_ohm_per_km</code></td></tr>
+    <tr><td><code>rline0</code> / <code>xline0</code></td><td>۳ برابر مقدار مثبت (قاعده سرانگشتی)</td><td>—</td></tr>
+    <tr><td><code>sline</code> (kA)</td><td>(ظرفیت جریان × مقطع) / ۱۰۰۰؛ هوایی ۴ A/mm²، زیرزمینی ۵ A/mm²</td><td><code>ampacity_a_per_mm2</code></td></tr>
+    <tr><td><code>uline</code></td><td>۰٫۴ kV</td><td><code>nominal_voltage_kv</code></td></tr>
+    <tr><td><code>nlnph</code> / <code>nneutral</code> / <code>rtemp</code></td><td>۳ فاز / ۱ نول (TN) / ۶۴۰</td><td>ثابت</td></tr>
+    <tr><td><code>aohl_</code></td><td><code>cbl</code> برای زیرزمینی/شینه، <code>ohl</code> برای هوایی</td><td>—</td></tr>
+    <tr><td><code>bline</code> / <code>Ithr</code></td><td>۰ / خالی</td><td>ثابت</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= 6. FIXED ATTRS ======================= -->
+<h2>۶) مقادیر ثابت نوشته‌شده در شیت‌های DGS</h2>
+<table>
+  <thead><tr><th>شیت</th><th>ستون‌ها (خروجی)</th><th>مقادیر ثابت</th></tr></thead>
+  <tbody>
+    <tr><td><code>ElmLne</code></td><td>ID، loc_name، fold_id، typ_id، chr_name، dline</td><td><code>dline</code> = طول km با ۶ رقم اعشار</td></tr>
+    <tr><td><code>ElmTr2</code></td><td>…، typ_id، chr_name، constr، cgnd_h، cgnd_l، i_auto، nntap، ntrcn، outserv، ratfac</td><td>همه صفر به‌جز <code>ratfac = 1</code></td></tr>
+    <tr><td><code>Elmlod</code></td><td>…، typ_id، outserv، phtech، i_sym، mode_inp، plini، coslini</td><td><code>outserv = 0</code>، <code>i_sym = 0</code>، <code>phtech = 3PH PH-E</code>، <code>mode_inp = PC</code></td></tr>
+    <tr><td><code>ElmCoup</code></td><td>…، typ_id، on_off، aUsage، chr_name</td><td><code>typ_id</code> خالی، <code>aUsage = cbk</code></td></tr>
+    <tr><td><code>RelFuse</code></td><td>…، chr_name، on_off، typ_id، aUsage</td><td><code>aUsage = fus</code>، MV: <code>on_off = 1</code></td></tr>
+    <tr><td><code>ElmShnt</code></td><td>…، shtype، ushnm، qcapn، ncapx، ctech، tandc</td><td>0 / 20 kV / 0.15 Mvar / 1 / 0 / 0</td></tr>
+    <tr><td><code>ElmXnet</code></td><td>…، bustp، cgnd، iintgnd، usetp، r0tx0، r0tx0min، rntxn، rntxnmin، snss، snssmin</td><td>SL / 0 / 0 / 1 / 0.1 / 0.1 / 0.5 / 0.4 / 600 / 500</td></tr>
+    <tr><td><code>ElmFeeder</code></td><td>…، obj_id، iorient، i_scale، Iset، icolor، chr_name</td><td><code>obj_id</code> = کیوبیکل (ترجیحاً خط)، رنگ از پالت</td></tr>
+    <tr><td><code>ElmTerm</code></td><td>…، iUsage، outserv، phtech، uknom</td><td><code>0 / 0 / 0</code> و <code>uknom</code> = ۲۰ (MV) یا ۰٫۴ (LV)</td></tr>
+    <tr><td><code>StaCubic</code></td><td>ID، loc_name، fold_id، chr_name، obj_bus، obj_id</td><td><code>obj_bus</code> = ۰ یا ۱</td></tr>
+  </tbody>
+</table>
+
+<h3>نمادهای گرافیکی (شیت <code>IntGrf</code>)</h3>
+<table>
+  <thead><tr><th>تجهیز</th><th>نماد</th><th>تجهیز</th><th>نماد</th></tr></thead>
+  <tbody>
+    <tr><td>خط MV/LV</td><td><code>d_lin</code></td><td>ترانسفورماتور</td><td><code>d_tr2</code></td></tr>
+    <tr><td>کلید</td><td><code>d_couple</code></td><td>فیوز</td><td><code>d_fuse</code></td></tr>
+    <tr><td>بار</td><td><code>d_load</code></td><td>منبع / DG</td><td><code>d_net</code></td></tr>
+    <tr><td>خازن</td><td><code>d_load</code> (نماد جایگزین)</td><td>ترمینال‌ها</td><td><code>PointTerm</code> / <code>TermStrip</code> / <code>Busbar</code></td></tr>
+  </tbody>
+</table>
+<p class="small">اندازه‌ها از <code>config.graphics</code>: فاصله گره ۱۰، اندازه ترمینال ۰٫۰۵، طول شینه ۰٫۶ (HV دو برابر)، ضخامت ۰٫۱، اندازه المان ۱، حاشیه صفحه ۵٪ (حداقل ۵).</p>
+
+<!-- ======================= 7. NOTES ======================= -->
+<h2>۷) نکات، محدودیت‌ها و موارد نیازمند بازبینی</h2>
+<ol>
+  <li><b>کتابخانه بدون نام VDE کابل:</b> همه کابل‌های زمینی MV فعلاً <code>95-AL-XLPE</code> می‌شوند (بخش ۳).</li>
+  <li><b>ظرفیت خازن ثابت است:</b> هیچ فیلدی از داده خوانده نمی‌شود؛ <code>qcapn = 0.15</code> Mvar برای همه بانک‌ها. مقدار واقعی را در <code>config.capacitor</code> یا Type Library اصلاح کنید.</li>
+  <li><b>وضعیت فیوز MV:</b> <code>on_off</code> همیشه ۱ است؛ <code>T__outserv</code> فقط برای کلیدها اعمال می‌شود.</li>
+  <li><b>ولتاژ LV در GUI:</b> کد فقط <code>config.json → transformer.lv_voltage_kv</code> را می‌خواند؛ مقدار وارد‌شده در «Project Settings» (کلید <code>lv_voltage_kv</code>) در Converter اعمال <em>نمی‌شود</em> — برای تغییر واقعی، آن را در <code>config.json</code> بگذارید.</li>
+  <li><b>بار LV به‌تفکیک مشترک ساخته نمی‌شود:</b> داده منبع ظرفیت بار تک‌مشترک ندارد؛ بار کل ترانس بین برگ‌های شبکه LV پخش می‌شود.</li>
+  <li><b>مقادیر تیپیک LV:</b> <code>xline</code> و ظرفیت جریان LV تقریبی و نه کاتالوگی‌اند؛ پیش از تحلیل واقعی بازبینی شوند.</li>
+  <li><b>مقاطع نامعتبر:</b> در کابل MV مقادیر <code>0</code> و <code>9999</code> نامعتبر تلقی و به پیش‌فرض تبدیل می‌شوند؛ در خط هوایی مقطع ۰ → <code>ACSR-MINK</code>.</li>
+  <li><b>گزارش مغایرت:</b> هر فرض/پیش‌فرض (کلاس تلفات، عایق، نوع جایگزین، رکورد خراب) در گزارش پایان کانورت با شناسه رکورد ثبت می‌شود؛ «Pre-check Types» هم همین ترکیب‌ها را پیش از اجرا نشان می‌دهد.</li>
+  <li><b>اتوبوستر و DG:</b> اتوبوستر = کلید سری ساده، DG = منبع معادل؛ مدل تفصیلی ندارند.</li>
+  <li><b>فیلدهای فیدر:</b> اگر هر چهار فیلد خالی باشند، <code>chr_name</code> خالی می‌ماند و PowerFactory نام خودکار ((n)) نمایش می‌دهد.</li>
+</ol>
+
+<h2>۸) کجا تغییر دهیم؟</h2>
+<table>
+  <thead><tr><th>چه چیزی</th><th>فایل / محل</th></tr></thead>
+  <tbody>
+    <tr><td>فیلدهای مبدأ (جنس، مقطع، ظرفیت، شناسه، فیدر)</td><td><code>config.json</code> → <code>id_field</code>، <code>feeder_field*</code>، <code>line_type.*_field</code>، <code>transformer.capacity_field</code></td></tr>
+    <tr><td>جداول نگاشت مقطع → نوع خط</td><td><code>config.json</code> → <code>line_type.acsr_bare_by_section</code> / <code>covered_by_section</code> / <code>copper_by_section</code> و پیش‌فرض‌ها</td></tr>
+    <tr><td>الگوهای نام ترانس و کلیدواژه‌های کلاس تلفات/عایق</td><td><code>config.json</code> → <code>transformer.*</code></td></tr>
+    <tr><td>پارامترهای الکتریکی نوع‌ها (r، x، uk، Pcu، Pfe …)</td><td><code>types_override.json</code> یا Type Library Editor</td></tr>
+    <tr><td>نوع و مقادیر فیوز/خازن/بار</td><td><code>config.json</code> → <code>fuse</code>، <code>capacitor</code>، <code>load</code></td></tr>
+    <tr><td>لایه‌های شکل‌فایل هر تجهیز</td><td><code>config.json → layers</code> یا Project Settings → Shapefile Layers</td></tr>
+    <tr><td>اندازه و نمادهای دیاگرام</td><td><code>config.json → graphics</code> یا <code>terminal_types_example.json</code></td></tr>
+  </tbody>
+</table>
+
+<footer>
+  تهیه‌شده بر پایه بررسی مستقیم <span class="en">converter.py</span>، <span class="en">equipment_catalog.py</span>،
+  <span class="en">config.json</span> و <span class="en">dgs_template.json</span> موجود در
+  <span class="en">GeoGrid_v4_2_0_Licensed-10.rar</span> — نسخه ۴٫۲٫۱.
+</footer>
+
+</body>
+</html>
