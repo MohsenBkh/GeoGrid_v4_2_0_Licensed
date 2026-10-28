@@ -265,6 +265,14 @@ class Converter:
         self._lv_type_counter = 0
         self._lv_fuse_type_rows = []  # synthesized LV TypFuse row(s), appended to the sheet in emit()
         self._lv_fuse_type_ids = {}   # rated current (A) -> synthesized LV fuse type id
+        # Fuses whose rated current is missing/zero borrow it from the
+        # capacity of the nearest MV transformer (see _derive_fuse_current).
+        # The index is filled in build() once every transformer has been
+        # read, because fuses are read before transformers.
+        self._mv_trafo_index = []     # [{"key", "cap", "feeder", "code"}, ...]
+        self._fuse_derived_seen = set()      # keeps the report compact (one entry per capacity/rating)
+        self._fuse_derived_counts = collections.Counter()  # (capacity, amps) -> number of fuses
+        self._fuse_unresolved_count = 0      # fuses with neither a rating nor a usable transformer
         self.lv_cfg = self.cfg.get("lv_line_type", {})
         # Every assumption, default, or skipped/corrupt record encountered
         # during conversion is recorded here so a full discrepancy report
@@ -1154,6 +1162,147 @@ class Converter:
             return None, raw
         return (value if value > 0 else None), raw
 
+    def _record_issue_once(self, key, category, message, record_id="", loud=False):
+        """Record a discrepancy-report entry only the first time ``key`` is
+        seen.
+
+        The per-record report is the right default for rare problems, but a
+        fuse rating derived from a nearby transformer can legitimately apply
+        to thousands of fuses (an export where ``T_jar_nami`` is blank
+        everywhere). One aggregated entry per distinct cause keeps the
+        report readable while still being traceable (it names an example
+        record id); the total count is logged separately.
+
+        Args:
+            key: Hashable identity of the cause (e.g. ``("derived", 100, 8)``).
+            category: Report bucket, e.g. ``"fuse_current_derived"``.
+            message: Human-readable explanation.
+            record_id: Example source record id.
+            loud: Also emit a warning-level log line.
+        """
+        if key in self._fuse_derived_seen:
+            return
+        self._fuse_derived_seen.add(key)
+        self._record_issue(category, message, record_id, loud=loud)
+
+    def _capacity_to_fuse_current(self, capacity_kva):
+        """Look up the fuse rating implied by a transformer's capacity.
+
+        Uses ``config["fuse"]["capacity_current_table"]`` -- the utility's
+        own distribution-transformer/fuse coordination table, e.g.
+        ``{"25": 3, "50": 6, "100": 8, ...}``, mapping kVA to amps.
+
+        A capacity that is not a table entry (e.g. a 63 kVA unit) uses the
+        closest capacity in the table, since a fuse must still be chosen.
+
+        Args:
+            capacity_kva: The transformer's rated capacity in kVA.
+
+        Returns:
+            tuple: ``(amps_or_None, table_capacity_key_or_None)`` -- the
+            second element tells the caller whether the lookup was exact.
+        """
+        fc = self.cfg.get("fuse", {}) or {}
+        table = fc.get("capacity_current_table") or {}
+        try:
+            cap = float(capacity_kva)
+        except (TypeError, ValueError):
+            return None, None
+        if cap <= 0 or not table:
+            return None, None
+        parsed = {}
+        for k, v in table.items():
+            try:
+                parsed[str(int(float(k)))] = float(v)
+            except (TypeError, ValueError):
+                continue
+        if not parsed:
+            return None, None
+        cap_key = str(int(round(cap)))
+        if cap_key in parsed:
+            return parsed[cap_key], cap_key
+        nearest = min(parsed, key=lambda k: (abs(float(k) - cap), float(k)))
+        return parsed[nearest], nearest
+
+    def _nearest_transformer(self, xy, feeder=""):
+        """Find the MV transformer nearest to ``xy`` (a fuse's position).
+
+        A distribution fuse normally sits on its transformer's MV busbar, so
+        an exact coordinate match is checked first (the common case: both
+        symbols are digitised on the same pole). Otherwise the nearest
+        transformer **on the same feeder** wins, then the nearest one
+        overall -- but only within ``config["fuse"]["capacity_max_distance_m"]``
+        (0 disables the limit), so a fuse far from any transformer is not
+        given an unrelated rating.
+
+        Args:
+            xy: ``(x, y)`` of the fuse, in the shapefiles' own GIS units.
+            feeder: The fuse's feeder name, used to prefer same-feeder
+                transformers.
+
+        Returns:
+            tuple: ``(trafo_dict_or_None, distance_or_None)``.
+        """
+        trafos = getattr(self, "_mv_trafo_index", None) or []
+        if not trafos or xy is None:
+            return None, None
+        key = self.snap_key(xy)
+        for trafo in trafos:
+            if trafo["key"] == key:
+                return trafo, 0.0
+
+        def dist(trafo):
+            return math.dist(trafo["key"], key)
+
+        same_feeder = [t for t in trafos if feeder and t.get("feeder") == feeder]
+        best = min(same_feeder or trafos, key=dist)
+        d = dist(best)
+        try:
+            max_d = float((self.cfg.get("fuse", {}) or {}).get("capacity_max_distance_m", 0) or 0)
+        except (TypeError, ValueError):
+            max_d = 0.0
+        if max_d > 0 and d > max_d:
+            return None, d
+        return best, d
+
+    def _derive_fuse_current(self, xy, feeder="", record_id="", dry_run=False):
+        """Derive a fuse's rated current from the nearest transformer's
+        capacity (see :meth:`_capacity_to_fuse_current`).
+
+        Args:
+            xy: The fuse's ``(x, y)`` position.
+            feeder: The fuse's feeder name.
+            record_id: Source record id, for the discrepancy report.
+            dry_run: If True, don't write to the report or count anything.
+
+        Returns:
+            tuple: ``(amps_or_None, description_or_None)`` where the
+            description reads like ``"100 kVA transformer -> 8 A"``.
+        """
+        trafo, distance = self._nearest_transformer(xy, feeder)
+        if trafo is None:
+            return None, None
+        amps, table_cap = self._capacity_to_fuse_current(trafo.get("cap"))
+        if amps is None:
+            return None, None
+        cap_label = self._format_current(trafo.get("cap"))
+        note = (f"{cap_label} kVA transformer -> {self._format_current(amps)} A"
+                + ("" if table_cap is not None and table_cap == self._format_current(trafo.get("cap"))
+                   else f" (nearest table entry {table_cap} kVA)"))
+        if not dry_run:
+            self._fuse_derived_counts[(self._format_current(trafo.get("cap")),
+                                       self._format_current(amps))] += 1
+            where = "same point as" if distance == 0 else f"{distance:.1f} m from"
+            self._record_issue_once(
+                ("derived", self._format_current(trafo.get("cap")), self._format_current(amps)),
+                "fuse_current_derived",
+                f"Fuse rated current missing/zero -> derived from the nearest MV transformer "
+                f"({where} transformer {trafo.get('code') or '(no id)'}, {note}); "
+                f"applies to every fuse with the same attribute/transform situation. "
+                f"Adjust config['fuse']['capacity_current_table'] if this coordination table is not yours",
+                record_id)
+        return amps, note
+
     def _fuse_candidates(self, urat_kv):
         """Return the fuse types usable at ``urat_kv``, as
         ``[(irat_a, loc_name), ...]`` sorted by rated current.
@@ -1216,12 +1365,19 @@ class Converter:
         return (max(lower, key=lambda c: c[0]) if lower
                 else min(candidates, key=lambda c: c[0]))[1]
 
-    def fuse_type_name(self, rec, level="mv", dry_run=False):
+    def fuse_type_name(self, rec, level="mv", dry_run=False, xy=None):
         """Resolve the ``TypFuse`` name for one fuse record.
 
         Resolution order:
 
-        0. ``config["fuse"]["type_name_pattern"]`` (default
+        0a. If the record's rated current is missing/zero (and ``xy`` is
+            given, ``level == "mv"``, and
+            ``config["fuse"]["derive_from_transformer"]`` is on), the rating
+            is derived from the capacity of the nearest MV transformer via
+            ``config["fuse"]["capacity_current_table"]`` -- e.g. a 100 kVA
+            unit implies an 8 A fuse. The result is reported as
+            ``fuse_current_derived`` (one aggregated entry per capacity).
+        0b. ``config["fuse"]["type_name_pattern"]`` (default
            ``"Fuse_Type_{current}"``) formatted with the record's rated
            current -- matches the naming used by the bundled Excel type
            library.
@@ -1240,6 +1396,8 @@ class Converter:
             level: ``"mv"`` or ``"lv"`` -- selects the voltage class.
             dry_run: If True, don't write to the discrepancy report (used
                 where a resolution is only exploratory).
+            xy: The fuse's ``(x, y)`` position, used only when the rated
+                current has to be derived from a nearby transformer.
 
         Returns:
             str: A ``TypFuse`` ``loc_name``; ``""`` only if the library has
@@ -1255,6 +1413,15 @@ class Converter:
         except (TypeError, ValueError):
             tol = 0.0
         candidates = self._fuse_candidates(target_u)
+
+        # Missing/zero rated current: borrow it from the nearest transformer's
+        # capacity (MV only -- LV fuses are handled by _get_lv_fuse_type_id).
+        if (current is None and level == "mv" and xy is not None
+                and fc.get("derive_from_transformer", True)):
+            derived, _note = self._derive_fuse_current(
+                xy, self.feeder_name(rec), record_id, dry_run=dry_run)
+            if derived is not None:
+                current = derived
 
         if current is not None:
             pattern = fc.get("type_name_pattern")
@@ -1283,20 +1450,26 @@ class Converter:
                 return chosen
 
         default = fc.get("type_name") or ""
+        if not dry_run:
+            self._fuse_unresolved_count += 1
         if default and default in self.typfuse_id:
             if not dry_run:
-                self._record_issue(
+                self._record_issue_once(
+                    ("missing", default),
                     "fuse_current_missing",
-                    f"No usable rated current in field '{field}' (value={raw!r}); "
-                    f"used the configured fallback fuse type ('{default}')",
+                    f"No usable rated current in field '{field}' (value={raw!r}) and no MV "
+                    f"transformer close enough to derive it from; used the configured fallback "
+                    f"fuse type ('{default}'). One report entry covers every such fuse",
                     record_id)
             return default
         if candidates:
             if not dry_run:
-                self._record_issue(
+                self._record_issue_once(
+                    ("missing_lowest", candidates[0][1]),
                     "fuse_current_missing",
-                    f"No usable rated current in field '{field}' (value={raw!r}); "
-                    f"used the lowest-rated available fuse type ('{candidates[0][1]}')",
+                    f"No usable rated current in field '{field}' (value={raw!r}) and no MV "
+                    f"transformer close enough to derive it from; used the lowest-rated "
+                    f"available fuse type ('{candidates[0][1]}')",
                     record_id)
             return candidates[0][1]
         all_names = sorted(self.typfuse_id)
@@ -1307,7 +1480,7 @@ class Converter:
                 record_id, loud=True)
         return all_names[0] if all_names else ""
 
-    def fuse_type_id(self, rec, level="mv", dry_run=False):
+    def fuse_type_id(self, rec, level="mv", dry_run=False, xy=None):
         """Return the ``TypFuse`` object id for one fuse record.
 
         Thin wrapper around :meth:`fuse_type_name` that also handles the LV
@@ -1320,6 +1493,8 @@ class Converter:
             rec: Shapefile attribute record (dict).
             level: ``"mv"`` or ``"lv"``.
             dry_run: If True, don't create types or write report entries.
+            xy: The fuse's ``(x, y)`` position -- required for deriving a
+                missing MV rating from the nearest transformer.
 
         Returns:
             int or str: The type id, or ``""`` if none could be resolved.
@@ -1327,7 +1502,7 @@ class Converter:
         current, _raw = self._fuse_current_a(rec)
         if level == "lv" and not self._fuse_candidates(self.lv_kv):
             return "" if dry_run else self._get_lv_fuse_type_id(current)
-        name = self.fuse_type_name(rec, level=level, dry_run=dry_run)
+        name = self.fuse_type_name(rec, level=level, dry_run=dry_run, xy=xy)
         tid = self.typfuse_id.get(name)
         if tid is None and level == "lv" and not dry_run:
             return self._get_lv_fuse_type_id(current)
@@ -1599,9 +1774,14 @@ class Converter:
                                                   feeder=self.feeder_name(rec),
                                                   on=self._switch_on(rec)))
                         elif kind == "fuse":
+                            # The fuse *type* is resolved later, in the node
+                            # loop below: a fuse with no rated current takes
+                            # its rating from the nearest transformer's
+                            # capacity, and transformers are read after
+                            # fuses (see fuse_type_id/_derive_fuse_current).
                             store[k].append(dict(code=s(rec.get(idf)) or "FU",
                                                   feeder=self.feeder_name(rec),
-                                                  typ_id=self.fuse_type_id(rec, "mv")))
+                                                  rec=rec))
                         elif kind == "transformer":
                             store[k].append(dict(code=s(rec.get(idf)) or "TR",
                                                   feeder=self.feeder_name(rec),
@@ -1613,6 +1793,19 @@ class Converter:
                     except Exception as e:
                         self._record_issue(f"corrupt_{kind}_record", f"Skipping corrupt {kind} record: {e}", loud=True)
                         continue
+
+        # Index every MV transformer's position + capacity so a fuse with a
+        # missing/zero rated current can borrow its rating from the nearest
+        # one (the fuse on that transformer's MV busbar). Built here, after
+        # every device layer has been read.
+        self._mv_trafo_index = [
+            dict(key=k, cap=t.get("cap", 0.0), feeder=t.get("feeder", ""), code=t.get("code", ""))
+            for k, trafo_list in node_trafos.items()
+            for t in trafo_list
+            if t.get("cap")
+        ]
+        logger.info("Transformer index for fuse-rating derivation: %d transformer(s)",
+                    len(self._mv_trafo_index))
 
         logger.info(
             "Devices: switches=%d fuses=%d trafos=%d sources=%d",
@@ -1739,7 +1932,10 @@ class Converter:
                         elmcoup.append((eid, dev["code"], dev["on"], dev["feeder"]))
                         self.elem_symbol[eid] = "d_couple"
                     else:  # fuse
-                        relfuse.append((eid, dev["code"], dev["feeder"], dev.get("typ_id", "")))
+                        ftype = dev.get("typ_id")
+                        if ftype is None:
+                            ftype = self.fuse_type_id(dev.get("rec", {}), "mv", xy=xy)
+                        relfuse.append((eid, dev["code"], dev["feeder"], ftype))
                         self.elem_symbol[eid] = "d_fuse"
                     self.elem_kind[eid] = self.elem_symbol[eid]
                     self.elem_center[eid] = xy
@@ -1836,6 +2032,14 @@ class Converter:
 
         self._progress_build(81, "Building LV (low-voltage) network\u2026", "lv_network")
         self._build_lv_network(elmlne, relfuse, elmcoup, elmxnet, elmfeeder)
+
+        if self._fuse_derived_counts or self._fuse_unresolved_count:
+            detail = ", ".join(f"{cap} kVA->{amps} A x{count}"
+                               for (cap, amps), count in sorted(self._fuse_derived_counts.items()))
+            logger.info(
+                "Fuse ratings: %d derived from transformer capacity (%s); %d fell back to the "
+                "configured default (no rating, no nearby transformer)",
+                sum(self._fuse_derived_counts.values()), detail or "-", self._fuse_unresolved_count)
 
         self._progress_build(81.5, "Placing transformer loads\u2026", "lv_network")
         self._place_transformer_loads(pending_transformer_loads, elmlod)

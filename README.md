@@ -314,7 +314,8 @@ with `--types <file.xlsx|file.json>` (CLI) or load one in the editor (GUI);
 Fuse types are no longer a single placeholder. Each fuse record's **rated
 current** is read from the source shapefile field named by
 `config.json → fuse.current_field` (default **`T_jar_nami`**) and matched
-against `TypFuse`:
+against `TypFuse` (**MV, 20 kV** — `Fuse_Type_1 … Fuse_Type_100`; 63 A was
+replaced by **65 A**, i.e. `Fuse_Type_65`):
 
 1. `config["fuse"]["type_name_pattern"]` — default `Fuse_Type_{current}`,
    i.e. `63` → `Fuse_Type_63`;
@@ -325,8 +326,35 @@ against `TypFuse`:
 4. `config["fuse"]["type_name"]` when the field is empty/unparsable (also
    reported).
 
-Values may be numbers or text with the rating embedded (`"63"`, `"63 A"`,
-`"فیوز ۶۳"`); Persian/Arabic-Indic digits are understood. LV fuses are rated
+Values may be numbers or text with the rating embedded (`"65"`, `"65 A"`,
+`"فیوز ۶۵"`); Persian/Arabic-Indic digits are understood.
+
+#### Fuses with no rating (zero / empty / unparsable)
+Such fuses are far too numerous to review by hand, so the rating is
+**derived from the transformer the fuse protects** instead of falling back to
+one fixed type: the converter looks for the nearest MV transformer (an exact
+coordinate match — the fuse on that transformer's MV busbar — wins, otherwise
+the nearest one on the same feeder, within
+`config["fuse"]["capacity_max_distance_m"]`, default 50 map units, 0 = no
+limit) and reads the rating from this coordination table
+(`config["fuse"]["capacity_current_table"]`):
+
+| Transformer | Fuse | Transformer | Fuse | Transformer | Fuse |
+|---|---|---|---|---|---|
+| 25 kVA | 3 A | 200 kVA | 15 A | 630 kVA | 30 A |
+| 50 kVA | 6 A | 250 kVA | 15 A | 800 kVA | 40 A |
+| 100 kVA | 8 A | 315 kVA | 15 A | 1000 kVA | 50 A |
+| 125 kVA | 10 A | 400 kVA | 20 A | | |
+| 160 kVA | 12 A | 500 kVA | 25 A | | |
+
+The derived rating is then resolved to an MV type exactly like a value read
+from the data (`100 kVA → 8 A → Fuse_Type_8`). A capacity that is not in the
+table uses the closest table entry (63 kVA → 50 kVA → 6 A). Only when no
+transformer is close enough does `fuse.type_name` apply. Because this can
+affect thousands of fuses, the discrepancy report carries **one aggregated
+entry per capacity/rating** (with an example record id and its distance),
+plus a summary line in the log: `100 kVA->8 A x214, 315 kVA->15 A x87, …`.
+Set `fuse.derive_from_transformer: false` to disable the behaviour. LV fuses are rated
 at 0.4 kV: the shipped library is MV-only, so one `LV_Fuse_<n>A` type is
 synthesized per distinct rated current found in the data (`LV_Default_Fuse`
 when a record carries no rating).
@@ -477,8 +505,9 @@ All rules live in **`config.json`**:
 
 - **Equipment type library**: `types_override.xlsx`, loaded by default
   (`--no-default-types` to skip, `--types` to replace)
-- **Fuse type** (`TypFuse`): rated current `T_jar_nami` → `Fuse_Type_<A>`
-  (see section 5 for the full resolution order)
+- **Fuse type** (`TypFuse`, MV 20 kV): rated current `T_jar_nami` →
+  `Fuse_Type_<A>`; for a zero/missing rating, the nearest transformer's
+  capacity decides the rating (25 kVA → 3 A … 1000 kVA → 50 A, see section 5)
 - **MV line type** (`TypLne`): material `T_jns_hadi`, section `T_cod_sath`, net `T_typ_shab`
 - **LV line type** (`TypLne`, synthesized): material `T_jns_hadi`,
   section `T_cod_sath`, installation `T_typ_shab` (overhead) /

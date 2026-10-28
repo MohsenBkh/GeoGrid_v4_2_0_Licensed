@@ -55,7 +55,9 @@ class DefaultTypeLibraryTests(unittest.TestCase):
     def test_library_replaces_placeholder_types(self):
         merged = self.merged()
         self.assertEqual(len(merged["TypFuse"]["rows"]), 20)
-        self.assertIn("Fuse_Type_63", name_to_id_map(merged["TypFuse"]))
+        self.assertIn("Fuse_Type_65", name_to_id_map(merged["TypFuse"]))
+        # 63 A was replaced by 65 A in the library, at the user's request.
+        self.assertNotIn("Fuse_Type_63", name_to_id_map(merged["TypFuse"]))
         self.assertIn("TRF-AB'-20/0.4 kV-100 kVA", name_to_id_map(merged["TypTr2"]))
         self.assertIn("NA2XSY 1x95/16 (12/20kV)", name_to_id_map(merged["TypLne"]))
 

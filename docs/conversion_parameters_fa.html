@@ -202,9 +202,11 @@
       </td>
       <td>
         نوع از الگوی <code>fuse.type_name_pattern</code> = <code>Fuse_Type_{current}</code>
-        انتخاب می‌شود (مثلاً ۶۳ آمپر → <code>Fuse_Type_63</code>)؛ در نبود تطابق دقیق،
-        نزدیک‌ترین جریان نامی <b>پایین‌تر</b> (کلید <code>snap_prefer</code>) و ثبت در گزارش مغایرت؛
-        بدون مقدار → <code>fuse.type_name</code>.<br>
+        انتخاب می‌شود (مثلاً ۶۵ آمپر → <code>Fuse_Type_65</code>)؛ در نبود تطابق دقیق،
+        نزدیک‌ترین جریان نامی <b>پایین‌تر</b> (کلید <code>snap_prefer</code>) و ثبت در گزارش مغایرت.<br>
+        <b>اگر جریان صفر/نامشخص باشد:</b> جریان از ظرفیت نزدیک‌ترین ترانس MV طبق جدول
+        <code>fuse.capacity_current_table</code> گرفته می‌شود (۲۵ kVA→۳ A … ۱۰۰۰ kVA→۵۰ A) و
+        نوع MV همان جریان انتخاب می‌گردد؛ فقط در نبود ترانس نزدیک → <code>fuse.type_name</code>.<br>
         <code>aUsage = fus</code>، <code>on_off = 1</code> ثابت
         (نکته: <code>T__outserv</code> برای فیوز خوانده <b>نمی‌شود</b>).
       </td>
@@ -404,6 +406,26 @@
   </tbody>
 </table>
 
+<h3>۵-۲) جدول تعیین جریان فیوزهای MV با جریان نامشخص (بر پایه ظرفیت ترانس)</h3>
+<p class="small">اگر <code>T_jar_nami</code> صفر/خالی/نامفهوم باشد، جریان از ظرفیت نزدیک‌ترین ترانس MV
+(اول تطبیق دقیق مختصات، سپس نزدیک‌ترین ترانس همان فیدر، تا سقف <code>capacity_max_distance_m</code> = ۵۰) گرفته می‌شود.</p>
+<table>
+  <thead><tr><th>ظرفیت ترانس</th><th>25</th><th>50</th><th>100</th><th>125</th><th>160</th><th>200</th><th>250</th><th>315</th><th>400</th><th>500</th><th>630</th><th>800</th><th>1000</th></tr></thead>
+  <tbody>
+    <tr><td>جریان فیوز (A)</td>
+      <td>3</td><td>6</td><td>8</td><td>10</td><td>12</td><td>15</td><td>15</td><td>15</td>
+      <td>20</td><td>25</td><td>30</td><td>40</td><td>50</td></tr>
+    <tr><td>نوع MV</td>
+      <td><code>Fuse_Type_3</code></td><td><code>Fuse_Type_6</code></td><td><code>Fuse_Type_8</code></td>
+      <td><code>Fuse_Type_10</code></td><td><code>Fuse_Type_12</code></td><td><code>Fuse_Type_15</code></td>
+      <td><code>Fuse_Type_15</code></td><td><code>Fuse_Type_15</code></td><td><code>Fuse_Type_20</code></td>
+      <td><code>Fuse_Type_25</code></td><td><code>Fuse_Type_30</code></td><td><code>Fuse_Type_40</code></td>
+      <td><code>Fuse_Type_50</code></td></tr>
+  </tbody>
+</table>
+<p class="small">ظرفیت خارج از جدول (مثلاً ۶۳ kVA) → نزدیک‌ترین سطر (۵۰ kVA → ۶ A). کتابخانه فیوز:
+<code>Fuse_Type_1 … 100</code> با <code>urat = 20</code> kV؛ ردیف ۶۳ آمپر به <b>۶۵ آمپر</b> (<code>Fuse_Type_65</code>) تغییر کرد.</p>
+
 <!-- ======================= 6. FIXED ATTRS ======================= -->
 <h2>۶) مقادیر ثابت نوشته‌شده در شیت‌های DGS</h2>
 <table>
@@ -461,6 +483,7 @@
     <tr><td>نوع و مقادیر فیوز/خازن/بار</td><td><code>config.json</code> → <code>fuse</code>، <code>capacitor</code>، <code>load</code></td></tr>
     <tr><td>کتابخانه نوع تجهیزات (پیش‌فرض)</td><td><code>types_override.xlsx</code> (یا Type Library Editor؛ جایگزینی با <code>--types</code>)</td></tr>
     <tr><td>فیلد جریان نامی فیوز</td><td><code>config.json</code> → <code>fuse.current_field</code> (پیش‌فرض <code>T_jar_nami</code>)</td></tr>
+    <tr><td>جدول هماهنگی ترانس↔فیوز (kVA→A)</td><td><code>config.json</code> → <code>fuse.capacity_current_table</code></td></tr>
     <tr><td>لایه‌های شکل‌فایل هر تجهیز</td><td><code>config.json → layers</code> یا Project Settings → Shapefile Layers</td></tr>
     <tr><td>اندازه و نمادهای دیاگرام</td><td><code>config.json → graphics</code> یا <code>terminal_types_example.json</code></td></tr>
   </tbody>

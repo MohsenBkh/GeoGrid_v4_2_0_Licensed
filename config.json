@@ -33,13 +33,22 @@
     }
   },
   "fuse": {
-    "_comment": "Fuse types are selected from the rated current carried by the source data (current_field), matched against the TypFuse rows of the type library (see types_override.xlsx: Fuse_Type_1 ... Fuse_Type_100, urat 20 kV). type_name_pattern is tried first; then an exact irat match; then the nearest available rating (snap_prefer: lower = never over-rate a device). Records with no usable rated current fall back to type_name.",
-    "type_name": "Fuse_Type_63",
+    "_comment": "Fuse types are selected from the rated current carried by the source data (current_field), matched against the TypFuse rows of the type library (types_override.xlsx: Fuse_Type_1 ... Fuse_Type_100, urat 20 kV). type_name_pattern is tried first; then an exact irat match; then the nearest available rating (snap_prefer: lower = never over-rate a device).",
+    "type_name": "Fuse_Type_65",
     "current_field": "T_jar_nami",
     "type_name_pattern": "Fuse_Type_{current}",
     "match_tolerance_a": 0,
     "snap_to_nearest": true,
     "snap_prefer": "lower",
+    "_comment_unknown": "Fuses whose rated current is 0 / empty / unparsable are far too numerous to review by hand, so the rating is derived instead: take the capacity of the nearest MV transformer (in practice the fuse on that transformer's MV busbar) and read the rating from capacity_current_table. The MV (20 kV) fuse type for that rating is then used, exactly as if the data had carried it. only if no transformer is within capacity_max_distance_m does type_name apply.",
+    "derive_from_transformer": true,
+    "capacity_current_table": {
+      "25": 3, "50": 6, "100": 8, "125": 10, "160": 12, "200": 15,
+      "250": 15, "315": 15, "400": 20, "500": 25, "630": 30,
+      "800": 40, "1000": 50
+    },
+    "_comment_distance": "Maximum distance (in the shapefiles' own map units, normally metres) between a fuse and the transformer whose capacity it may borrow; 0 disables the limit. Raise it if your exports digitise the cutout several tens of metres from the transformer symbol.",
+    "capacity_max_distance_m": 50,
     "lv_type_name": "LV_Default_Fuse",
     "lv_type_name_pattern": "LV_Fuse_{current}A",
     "lv_urat_kv": 0.4,
