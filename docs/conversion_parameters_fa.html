@@ -196,9 +196,15 @@
       <td><b>فیوز / کات‌اوت MV</b><span class="tag mvtag">mv_fuse</span></td>
       <td><code>ELFCT</code></td>
       <td><code>RelFuse</code></td>
-      <td>شناسه، فیدر</td>
       <td>
-        نوع = <code>fuse.type_name</code> = <code>Default_Fuse_Type</code>،
+        شناسه، فیدر<br>
+        <b>جریان نامی: <code>T_jar_nami</code></b> (کلید <code>fuse.current_field</code>)
+      </td>
+      <td>
+        نوع از الگوی <code>fuse.type_name_pattern</code> = <code>Fuse_Type_{current}</code>
+        انتخاب می‌شود (مثلاً ۶۳ آمپر → <code>Fuse_Type_63</code>)؛ در نبود تطابق دقیق،
+        نزدیک‌ترین جریان نامی <b>پایین‌تر</b> (کلید <code>snap_prefer</code>) و ثبت در گزارش مغایرت؛
+        بدون مقدار → <code>fuse.type_name</code>.<br>
         <code>aUsage = fus</code>، <code>on_off = 1</code> ثابت
         (نکته: <code>T__outserv</code> برای فیوز خوانده <b>نمی‌شود</b>).
       </td>
@@ -273,13 +279,13 @@
   </tbody>
 </table>
 
-<div class="warnbox">
-  <b>یافته مهم درباره کابل زمینی:</b> کد، نام کابل را طبق الگوی VDE می‌سازد
-  (<code>NA2XSY 1x95/16 (12/20kV)</code>)، اما شیت <code>TypLne</code> در
-  <code>dgs_template.json</code> چنین نامی ندارد (فقط <code>35..300-AL-XLPE</code> و <code>*-CU-XLPE</code>).
-  نتیجه: با کتابخانه پیش‌فرض، <b>همه</b> کابل‌های زمینی MV به <code>95-AL-XLPE</code> تبدیل می‌شوند.
-  برای تبدیل درست، یا نوع‌های <code>NA2XSY / N2XSY</code> را به کتابخانه اضافه کنید، یا از
-  «Pre-check Types» نوع هر ترکیب (مقطع، جنس) را دستی تخصیص دهید.
+<div class="note">
+  <b>رفع شد (نسخه فعلی):</b> کتابخانه پیش‌فرض اکنون <code>types_override.xlsx</code> است و
+  نوع‌های کابل VDE (<code>NA2XSY 1x35..300/16</code> و <code>N2XSY 1x35..500/16</code> با
+  کلاس <code>12/20kV</code>) را در خود دارد؛ پس کابل زمینی با جنس/مقطع درست تبدیل می‌شود.
+  تنها مقطعی که هنوز نام VDE ندارد <code>500 mm² آلومینیوم</code> است (فقط نسخه مسی موجود است)
+  که در این حالت به <code>uml_default</code> = <code>NA2XSY 1x95/16 (12/20kV)</code> می‌افتد و
+  در گزارش مغایرت ثبت می‌شود.
 </div>
 
 <!-- ======================= 4. TRANSFORMER ======================= -->
@@ -300,6 +306,10 @@
   </tbody>
 </table>
 <p class="small">
+  <b>کتابخانه پیش‌فرض (<code>types_override.xlsx</code>) هر دو خانواده را دارد:</b>
+  <code>TRF-Normal-20/0.4 kV-{cap} kVA</code> و <code>TRF-AB'-20/0.4 kV-{cap} kVA</code>
+  برای ۲۵ تا ۲۵۰۰ kVA (به‌همراه نسخه‌های قدیمی <code>{cap}KVA20-O/-OLS/-D</code> و نوع پشتیبان <code>Unknown</code>)،
+  بنابراین الگوی اول همیشه منطبق می‌شود و <code>T_strn</code> تعیین‌کننده بخش عددی نام است.<br>
   <code>{series}</code> = <code>AB'</code> (کم‌تلفات) یا <code>Normal</code>. کلیدواژه‌های کم‌تلفات:
   «کم تلفات»، «کم‌تلفات»، <code>low loss</code>، <code>amorphous</code>، <code>ab'</code>؛
   پرتلفات: «پرتلفات»، <code>high loss</code>، <code>normal loss</code>.
@@ -337,8 +347,12 @@
       <td><b>فیوز LV</b><span class="tag lvtag">lv_fuse</span></td>
       <td><code>ELWLFU</code></td>
       <td><code>RelFuse</code></td>
-      <td>شناسه، فیدر</td>
-      <td>نوع سنتزشده <code>LV_Default_Fuse</code>: <code>urat = 0.4</code> kV، <code>irat = 100</code> A، <code>frq = 50</code> Hz، <code>on_off = 1</code>.</td>
+      <td>شناسه، فیدر، <b><code>T_jar_nami</code></b></td>
+      <td>
+        برای هر جریان نامی موجود در داده یک نوع LV سنتز می‌شود:
+        <code>LV_Fuse_{n}A</code> با <code>urat = 0.4</code> kV و <code>irat = n</code>؛
+        بدون مقدار → <code>LV_Default_Fuse</code> (۰٫۴ kV، ۱۰۰ A، ۵۰ Hz).
+      </td>
     </tr>
     <tr>
       <td><b>کلید / سکشنالایزر LV</b><span class="tag lvtag">lv_switch</span></td>
@@ -423,7 +437,8 @@
 <!-- ======================= 7. NOTES ======================= -->
 <h2>۷) نکات، محدودیت‌ها و موارد نیازمند بازبینی</h2>
 <ol>
-  <li><b>کتابخانه بدون نام VDE کابل:</b> همه کابل‌های زمینی MV فعلاً <code>95-AL-XLPE</code> می‌شوند (بخش ۳).</li>
+  <li><b>کتابخانه پیش‌فرض:</b> <code>types_override.xlsx</code> (۳۹ نوع خط، ۶۰ نوع ترانس، ۲۰ نوع فیوز) به‌صورت خودکار و به‌عنوان پیش‌فرض بارگذاری می‌شود؛ برای استفاده از کتابخانه قدیمی <code>dgs_template.json</code> از <code>--no-default-types</code> استفاده کنید.</li>
+  <li><b>نام‌های تکراری در اکسل:</b> سه ردیف تکراری (<code>ABC33KV120</code>، <code>HYENA-CCT</code>، <code>WOLF-CCT</code>) هنگام ایمپورت حذف می‌شوند، چون <code>loc_name</code> نوع باید یکتا باشد.</li>
   <li><b>ظرفیت خازن ثابت است:</b> هیچ فیلدی از داده خوانده نمی‌شود؛ <code>qcapn = 0.15</code> Mvar برای همه بانک‌ها. مقدار واقعی را در <code>config.capacitor</code> یا Type Library اصلاح کنید.</li>
   <li><b>وضعیت فیوز MV:</b> <code>on_off</code> همیشه ۱ است؛ <code>T__outserv</code> فقط برای کلیدها اعمال می‌شود.</li>
   <li><b>ولتاژ LV در GUI:</b> کد فقط <code>config.json → transformer.lv_voltage_kv</code> را می‌خواند؛ مقدار وارد‌شده در «Project Settings» (کلید <code>lv_voltage_kv</code>) در Converter اعمال <em>نمی‌شود</em> — برای تغییر واقعی، آن را در <code>config.json</code> بگذارید.</li>
@@ -444,10 +459,19 @@
     <tr><td>الگوهای نام ترانس و کلیدواژه‌های کلاس تلفات/عایق</td><td><code>config.json</code> → <code>transformer.*</code></td></tr>
     <tr><td>پارامترهای الکتریکی نوع‌ها (r، x، uk، Pcu، Pfe …)</td><td><code>types_override.json</code> یا Type Library Editor</td></tr>
     <tr><td>نوع و مقادیر فیوز/خازن/بار</td><td><code>config.json</code> → <code>fuse</code>، <code>capacitor</code>، <code>load</code></td></tr>
+    <tr><td>کتابخانه نوع تجهیزات (پیش‌فرض)</td><td><code>types_override.xlsx</code> (یا Type Library Editor؛ جایگزینی با <code>--types</code>)</td></tr>
+    <tr><td>فیلد جریان نامی فیوز</td><td><code>config.json</code> → <code>fuse.current_field</code> (پیش‌فرض <code>T_jar_nami</code>)</td></tr>
     <tr><td>لایه‌های شکل‌فایل هر تجهیز</td><td><code>config.json → layers</code> یا Project Settings → Shapefile Layers</td></tr>
     <tr><td>اندازه و نمادهای دیاگرام</td><td><code>config.json → graphics</code> یا <code>terminal_types_example.json</code></td></tr>
   </tbody>
 </table>
+
+<div class="note">
+  <b>یادآوری برای نسخه اجرایی (exe):</b> منطق انتخاب نوع فیوز در <code>shp2dgs/core/converter.py</code> است که
+  در بیلد نهایی به کتابخانه بومی (<code>converter.*.pyd</code>) کامپایل می‌شود؛ پس از این تغییر باید
+  <code>BUILD.bat</code> دوباره اجرا شود و فایل <code>types_override.xlsx</code> کنار خروجی قرار گیرد
+  (در <code>shp_to_dgs.spec</code> به‌عنوان داده بسته‌بندی شده است).
+</div>
 
 <footer>
   تهیه‌شده بر پایه بررسی مستقیم <span class="en">converter.py</span>، <span class="en">equipment_catalog.py</span>،

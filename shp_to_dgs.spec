@@ -35,9 +35,15 @@ _exe_icon = _ico_path if (sys.platform.startswith("win") and os.path.exists(_ico
 # function body, like shp2dgs.gui.main_window's local imports).
 hidden_imports = collect_submodules("shp2dgs")
 
+# The maintained equipment type library (TypLne/TypTr2/TypLod/TypFuse,
+# including the rated-current fuse types) -- loaded automatically at
+# startup as the DEFAULT library, see
+# shp2dgs.core.config_io.load_default_types_override(). It must ship, or
+# the .exe silently falls back to dgs_template.json's placeholder types.
 datas = [
     ("config.json", "."),
     ("dgs_template.json", "."),
+    ("types_override.xlsx", "."),
     ("types_override_example.json", "."),
     ("terminal_types_example.json", "."),
     ("assets", "assets"),

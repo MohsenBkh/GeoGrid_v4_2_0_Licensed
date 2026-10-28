@@ -285,7 +285,51 @@ conversion; it runs whenever those layers are present.
 
 ---
 
-## 5. Equipment type library editor
+## 5. Equipment type library (`types_override.xlsx`) & editor
+
+**The shipped type library is `types_override.xlsx`, and it is the default.**
+It is loaded automatically by both the GUI (at startup) and the CLI (unless
+`--no-default-types` is passed), then merged over `dgs_template.json`, so
+every conversion uses the maintained types instead of the template's old
+placeholder rows:
+
+| Sheet | Rows | Content |
+|---|---|---|
+| `TypLne` | 39 | ACSR bare conductors, covered ("CC"/"CCT") conductors, VDE-named MV cables (`NA2XSY`/`N2XSY 1x<mm²>/16 (12/20kV)`), `Al_St` conductors, ABC |
+| `TypTr2` | 60 | `TRF-Normal-…` / `TRF-AB'-…` (20/0.4 kV, 25–2500 kVA), `…KVA20-D`, legacy `…KVA20-O/-OLS/-H`, `Unknown` |
+| `TypLod` | 1 | `Normal` (`kpu` 1.6, `kqu` 1.8, `3PH PH-E`) |
+| `TypFuse` | 20 | `Fuse_Type_1 … Fuse_Type_100` — one entry per rated current (20 kV) |
+
+The workbook needs no `ID`/`fold_id` columns: those are generated on import.
+A `loc_name` that appears twice with identical parameters is dropped (with a
+warning) because a type name must be unique; two rows with *different*
+parameters under one name are reported and the first is kept.
+
+`Settings → Reload Default Type Library (types_override.xlsx)` discards an
+edited override and goes back to the shipped library. Pass a different file
+with `--types <file.xlsx|file.json>` (CLI) or load one in the editor (GUI);
+`--no-default-types` converts with `dgs_template.json` only.
+
+### Fuse types by rated current
+Fuse types are no longer a single placeholder. Each fuse record's **rated
+current** is read from the source shapefile field named by
+`config.json → fuse.current_field` (default **`T_jar_nami`**) and matched
+against `TypFuse`:
+
+1. `config["fuse"]["type_name_pattern"]` — default `Fuse_Type_{current}`,
+   i.e. `63` → `Fuse_Type_63`;
+2. an exact `irat` match in the library;
+3. the nearest available rating (`snap_prefer`: `lower` by default, so a fuse
+   is never over-rated; switch it to `nearest`/`higher` if you prefer) —
+   recorded in the discrepancy report;
+4. `config["fuse"]["type_name"]` when the field is empty/unparsable (also
+   reported).
+
+Values may be numbers or text with the rating embedded (`"63"`, `"63 A"`,
+`"فیوز ۶۳"`); Persian/Arabic-Indic digits are understood. LV fuses are rated
+at 0.4 kV: the shipped library is MV-only, so one `LV_Fuse_<n>A` type is
+synthesized per distinct rated current found in the data (`LV_Default_Fuse`
+when a record carries no rating).
 
 `Tools → Type Library Editor…` (or the **Type Library** tab) is a
 spreadsheet-style editor, one sub-tab per equipment type
@@ -431,11 +475,17 @@ possible errors, and (for non-obvious ones) a usage example.
 
 All rules live in **`config.json`**:
 
+- **Equipment type library**: `types_override.xlsx`, loaded by default
+  (`--no-default-types` to skip, `--types` to replace)
+- **Fuse type** (`TypFuse`): rated current `T_jar_nami` → `Fuse_Type_<A>`
+  (see section 5 for the full resolution order)
 - **MV line type** (`TypLne`): material `T_jns_hadi`, section `T_cod_sath`, net `T_typ_shab`
 - **LV line type** (`TypLne`, synthesized): material `T_jns_hadi`,
   section `T_cod_sath`, installation `T_typ_shab` (overhead) /
   `T_noe_arys` (underground) — see `config["lv_line_type"]`
-- **Transformer type**: `"{cap}KVA20-O"` from `T_strn`
+- **Transformer type**: `"TRF-{series}-20/0.4 kV-{cap} kVA"` from `T_strn`
+  (`series` = `AB'` low-loss / `Normal`), then `"{cap}KVA20-O"`, then
+  `"{cap}KVA20-D"` for dry-type, then `Unknown`
 - **Load**: `plini = capacity_kVA × loading_factor / 1000` MW, default `cosφ = 0.9`
 - **Line length**: `Shape_STLe / 1000` km
 - **Feeder**: `T_FeederNa`
@@ -456,13 +506,15 @@ Diagram sizing (`config.json["graphics"]`, also editable per-run in
 | `shp_to_dgs.py` | legacy entry point (delegates to `shp2dgs.cli.main`) |
 | `shp2dgs/` | the installable package (core + gui + cli + utils), incl. `core/geo.py`, `core/equipment_catalog.py` |
 | `config.json` | mapping/keyword/graphics/LV-type rules — editable |
-| `dgs_template.json` | fixed DGS sheets + MV equipment type library |
-| `types_override.json` | your equipment-type overrides (optional) |
+| `dgs_template.json` | fixed DGS sheets + the original (placeholder) type rows |
+| `types_override.xlsx` | **the default equipment type library** (loaded automatically) |
+| `types_override.json` | your equipment-type overrides (optional, `--types`) |
 | `types_override_example.json` / `terminal_types_example.json` | worked examples |
 | `assets/` | `icon.png` / `icon.ico` / `splash.png` |
 | `shp_to_dgs.spec` | PyInstaller build spec (→ `GeoGrid.exe`) |
 | `pyproject.toml` | `pip install -e .` packaging + `shp2dgs`/`geogrid` console entry points |
 | `requirements.txt` | Python dependencies |
+| `tests/` | dependency-free regression tests (`python -m unittest discover -s tests -t tests`) |
 
 ---
 

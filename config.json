@@ -33,8 +33,15 @@
     }
   },
   "fuse": {
-    "type_name": "Default_Fuse_Type",
+    "_comment": "Fuse types are selected from the rated current carried by the source data (current_field), matched against the TypFuse rows of the type library (see types_override.xlsx: Fuse_Type_1 ... Fuse_Type_100, urat 20 kV). type_name_pattern is tried first; then an exact irat match; then the nearest available rating (snap_prefer: lower = never over-rate a device). Records with no usable rated current fall back to type_name.",
+    "type_name": "Fuse_Type_63",
+    "current_field": "T_jar_nami",
+    "type_name_pattern": "Fuse_Type_{current}",
+    "match_tolerance_a": 0,
+    "snap_to_nearest": true,
+    "snap_prefer": "lower",
     "lv_type_name": "LV_Default_Fuse",
+    "lv_type_name_pattern": "LV_Fuse_{current}A",
     "lv_urat_kv": 0.4,
     "lv_irat_a": 100,
     "lv_frq_hz": 50
@@ -100,16 +107,17 @@
       "70": "ACSR-MINK", "95": "ACSR-MINK", "126": "ACSR-HYENA",
       "185": "ACSR-WOLF", "225": "ACSR-LYNX", "0": "ACSR-MINK"
     },
+    "_comment_covered": "Covered-conductor ('CC') names follow the base conductor in the shipped type library: MINK=70, HYENA=126, WOLF=185 mm2. Sections with no covered entry (e.g. 225/226/LYNX) fall back to covered_default and are listed in the discrepancy report.",
     "covered_by_section": {
-      "35": "35-Covered", "70": "70-Covered", "126": "126-Covered", "226": "226-Covered"
+      "35": "35-Covered", "70": "MINK-CC", "126": "HYENA-CC", "185": "WOLF-CC"
     },
     "covered_default": "35-Covered",
     "copper_by_section": {
       "50": "50-CU-N", "42": "ACSR-FOX", "70": "70-Al_St"
     },
-    "cable_default": "95-AL-XLPE",
-    "mln_default": "95-CU-XLPE",
-    "uml_default": "95-AL-XLPE",
+    "cable_default": "NA2XSY 1x95/16 (12/20kV)",
+    "mln_default": "N2XSY 1x95/16 (12/20kV)",
+    "uml_default": "NA2XSY 1x95/16 (12/20kV)",
     "jup_default": "ACSR-MINK",
     "global_fallback": "ACSR-MINK",
     "abc_default": "ABC33KV120",
